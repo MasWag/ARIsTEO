@@ -4,7 +4,7 @@
 % SPDX-License-Identifier: GPL-2.0-or-later
 % Authors: see Authors.txt
 
-function [data,input,robustness]=check(model,cp_array,input_range,init_cond,X0,input,UPoint,phi,preds,data,TotSimTime,aristeo_options)
+function [data,input,robustness,Tsim,YTsim]=check(model,cp_array,input_range,init_cond,X0,input,UPoint,phi,preds,data,TotSimTime,aristeo_options)
 %CHECK Simulates the original model with the new falsification input
 %signals returned by the falsification step.
 % INPUTS:
@@ -386,7 +386,10 @@ function [data,input,robustness]=check(model,cp_array,input_range,init_cond,X0,i
             simtime=toc(simtimetic);
         end
     end
-
+    % raw simulated trace, exposed so that other specifications can be
+    % evaluated on it without re-simulating (used by aristeo_multi_prop)
+    Tsim=T;
+    YTsim=YT;
 
     if(isequal(v.Version,'7.11'))
         if(input(2,1)>aristeo_options.SampTime)

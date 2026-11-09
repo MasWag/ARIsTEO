@@ -57,7 +57,7 @@ International Conference on Software Engineering, 2020 <br/>
 * ``ARIsTEO/staliro/demos``
 * ``ARIsTEO/staliro/benchmarks``
 
-For a description of the parameters and the Usage of ARIsTEO type "help aristeo"  
+For a description of the parameters and the usage of ARIsTEO type `help aristeo` or `help aristeo_multi_prop`.
 
 ## Running ARIsTEO --- The pendulum example
 The pendulum is the simplest mechanical system you can model. This system contains two bodies, a link and a fixed pivot, connected by a revolute joint.
@@ -119,6 +119,28 @@ By running the following commands a pendulum will be shown on the screen. Differ
 
 
 To see a comparison between ARIsTEO and STaliro execute the file ``AristeoTutorial.m``
+
+## Multiple properties
+`aristeo` remains the single-property entry point. `aristeo_multi_prop` falsifies **all** the given properties of the same model in one call, reusing the learned surrogate model and the identification data across properties. It is the code of `aristeo.m` with the additions marked `MULTI-SPEC` (compare with `diff ARIsTEO/aristeo.m ARIsTEO/aristeo_multi_prop.m`):
+
+* the initial simulation of the model is checked against every property, and the surrogate is learned once from it;
+* each refinement round selects the first property (in the given order) that is not yet falsified and runs the original abstraction/refinement, falsification and check steps for it;
+* the trace simulated in the check is also evaluated against all the other properties that are not yet falsified (no additional simulation);
+* the surrogate and the identification data are kept when a property is falsified; abstraction and refinement follow the original rule, and, as in the original `check`, a trace is added to the identification data only if it does not falsify the selected property;
+* `opt.n_refinement_rounds` is the budget of the whole call (all properties together); the number of model simulations of a run is `results.run(i).nTests` (1 + number of rounds).
+* an optional wall-clock timeout in seconds for the whole task, `aristeo_multi_prop(..., opt, timeout)`, is checked before each round like `n_refinement_rounds` (a started round is completed); `results.run(i).timedOut` tells whether a run stopped because of it.
+
+All properties must share the same `model`, `init_cond`, `input_range`, `cp_array`, `TotSimTime` and options. `preds` is either one predicate array for all properties or a cell array with one predicate array per property. Per-property results are in `results.run(i).falsified`, `falsifiedAtTest` (index of the falsifying simulation, 1 = initial simulation), `falsifiedAtTime`, `bestRobs` and `bestInputs`; type `help aristeo_multi_prop` for details.
+
+Example (with the variables of the pendulum example above):
+
+```matlab
+phis = {'[]_[0,10000] (a/\b)', '[]_[0,10000] a'};
+[resultsmulti, inputsmulti] = aristeo_multi_prop(model, init_cond, input_range, cp_array, phis, preds, TotSimTime, opt);
+resultsmulti.run(1).falsified
+```
+
+Tests are in `tests/multi_spec` (`test_multi_spec.m`, and `run_regression.sh` for a same-seed comparison of `aristeo` with the `master` branch).
 
 ## Licensing
 
